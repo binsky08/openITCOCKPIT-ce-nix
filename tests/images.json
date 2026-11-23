@@ -1,0 +1,114 @@
+{
+  "carbon-c-relay": {
+    "imageName": "docker.io/openitcockpit/carbon-c-relay",
+    "imageDigest": "sha256:fad0a26527b40f1d44c9e4e12bd44609e2c69957d3b488e41f6f014a4c6d0a4c",
+    "hash": "sha256-3gHyQ4zblwXNgWOUEqG7jw55Oim6jtI2JIzYOzYFYvY=",
+    "finalImageName": "docker.io/openitcockpit/carbon-c-relay",
+    "finalImageTag": "latest"
+  },
+  "carbon-cache": {
+    "imageName": "docker.io/openitcockpit/carbon-cache",
+    "imageDigest": "sha256:cd5b15caa20970218369817f664262ac603e6afef673f4a41b893d2de64820e8",
+    "hash": "sha256-Ij4VJs4ZAQ11xfGkAv8sRUzSQAScUx3lpLqXS9F9cTA=",
+    "finalImageName": "docker.io/openitcockpit/carbon-cache",
+    "finalImageTag": "latest"
+  },
+  "checkmk": {
+    "imageName": "docker.io/openitcockpit/checkmk",
+    "imageDigest": "sha256:ccfb4af156ea7d73db67ca0d3daf5e994788a0edd9f1f6ddcdfe6feeb036cb1a",
+    "hash": "sha256-eKiB6DRIJD2t9ernQH+jhzdsS6Gdu4TAX1BisU3BG1U=",
+    "finalImageName": "docker.io/openitcockpit/checkmk",
+    "finalImageTag": "latest"
+  },
+  "gearmand": {
+    "imageName": "docker.io/openitcockpit/gearmand",
+    "imageDigest": "sha256:27b0c40deccf41e6b9da0bfb931dda320be49968d288fb6c308fab94e46402ad",
+    "hash": "sha256-hXS2DPTovlxSwzXSGE6vPcCBauMlDSIK46r5qc+3+bM=",
+    "finalImageName": "docker.io/openitcockpit/gearmand",
+    "finalImageTag": "latest"
+  },
+  "grafana": {
+    "imageName": "docker.io/openitcockpit/grafana",
+    "imageDigest": "sha256:a39434aba1a49f35c8814215ca4ea169e3f8116fe9e9e149bbbf50b7b50b6a2b",
+    "hash": "sha256-UFmue7l1Wg2e64BKuegIUf9J/FzIhQDkDRig4rbbjrg=",
+    "finalImageName": "docker.io/openitcockpit/grafana",
+    "finalImageTag": "latest"
+  },
+  "graphite-web": {
+    "imageName": "docker.io/openitcockpit/graphite-web",
+    "imageDigest": "sha256:11fe1f99285a98810890346d892df9b64380849d9c73a06ac328b85bdc116b7e",
+    "hash": "sha256-Qvy8kpL2YQgPAlNdWOTCm2wrYFWd09lq3bjIfviwetU=",
+    "finalImageName": "docker.io/openitcockpit/graphite-web",
+    "finalImageTag": "latest"
+  },
+  "mod_gearman_worker": {
+    "imageName": "docker.io/openitcockpit/mod_gearman_worker",
+    "imageDigest": "sha256:2bef0cccab9722e090588cace5451b82a9c65275320dce0e0e647527a1cc13fa",
+    "hash": "sha256-o0eXqGJXGUIUzCRCYKcom1rxQ8X0GlAY7aNSXPcQobE=",
+    "finalImageName": "docker.io/openitcockpit/mod_gearman_worker",
+    "finalImageTag": "latest"
+  },
+  "mysql": {
+    "imageName": "docker.io/library/mysql",
+    "imageDigest": "sha256:df90258da46f6e7ff8574ff84f17618aba0765cac749928299c69fd4e7cb8ad8",
+    "hash": "sha256-tYofQmbIGIGB5vQigwq5xYKYC4U2qfZqPcHd4YsFFmQ=",
+    "finalImageName": "docker.io/library/mysql",
+    "finalImageTag": "lts"
+  },
+  "naemon": {
+    "imageName": "docker.io/openitcockpit/naemon",
+    "imageDigest": "sha256:eaff1c672bb6437d6f18c945b7349ec5666b68e322d327feb89d4a0f4061969d",
+    "hash": "sha256-VTesvKvpv5MiwUstXeFRTsll0s9dXeObPfQif3lakpI=",
+    "finalImageName": "docker.io/openitcockpit/naemon",
+    "finalImageTag": "latest"
+  },
+  "openitcockpit": {
+    "imageName": "docker.io/openitcockpit/openitcockpit-ce",
+    "imageDigest": "sha256:84e17a2135694498ffccb5b58e48299fd6385083a5a135fc1abd0c62bd9d5ef9",
+    "hash": "sha256-I2Mga47hwaMytFj62YZICNZk/ee/ndA4HlUb3LRxlLo=",
+    "finalImageName": "docker.io/openitcockpit/openitcockpit-ce",
+    "finalImageTag": "latest"
+  },
+  "postfix": {
+    "imageName": "docker.io/boky/postfix",
+    "imageDigest": "sha256:0632783c64183446c4edeae9092a2e015fdc0c4e8a3976bdf8878a7fc2146361",
+    "hash": "sha256-a1VeIbfPQbg8kj/bM1RVQLnNWreTwIiU3TO1IfadWl0=",
+    "finalImageName": "docker.io/boky/postfix",
+    "finalImageTag": "latest"
+  },
+  "prometheus": {
+    "imageName": "docker.io/openitcockpit/prometheus",
+    "imageDigest": "sha256:26dff6936492601bd73f8b1129b10c5ea09fc46db751e9160edc8e29de55e74d",
+    "hash": "sha256-4UR9UMmf7RiFSYhdy4oYEb3dVVZzdXHNJG/mBanEj00=",
+    "finalImageName": "docker.io/openitcockpit/prometheus",
+    "finalImageTag": "latest"
+  },
+  "puppeteer": {
+    "imageName": "docker.io/openitcockpit/puppeteer",
+    "imageDigest": "sha256:3e5b8f28b2a8deee5ef4f225eef63fe56188cc060adcd197758ec335ba866dd5",
+    "hash": "sha256-hfxtPZ5TU+3BxTzps6Iuampc0wpMKeysXf4wiA646ug=",
+    "finalImageName": "docker.io/openitcockpit/puppeteer",
+    "finalImageTag": "latest"
+  },
+  "redis": {
+    "imageName": "docker.io/library/redis",
+    "imageDigest": "sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53",
+    "hash": "sha256-wWbX4jP+kdWnjZVVgQnce85/Haqmie7wRTXFRzDkxnI=",
+    "finalImageName": "docker.io/library/redis",
+    "finalImageTag": "latest"
+  },
+  "statusengine-worker": {
+    "imageName": "docker.io/openitcockpit/statusengine-worker",
+    "imageDigest": "sha256:29ce756cd321bb3ffb855c2e690ece661eb3f85add370dfb64aecdd1bf9eb7b0",
+    "hash": "sha256-cRU9w5/6wvAzcRBB09peijqLdfQ5UPxzHOtuMdwDaQo=",
+    "finalImageName": "docker.io/openitcockpit/statusengine-worker",
+    "finalImageTag": "latest"
+  },
+  "victoria-metrics": {
+    "imageName": "docker.io/openitcockpit/victoria-metrics",
+    "imageDigest": "sha256:043150372857d6f16cbd48e7033123eadec73f2bdf6a219527f67276da523332",
+    "hash": "sha256-ZfU054DylmTrtTxF3BDbWKTSBcfqrAo3tFOtam26TqE=",
+    "finalImageName": "docker.io/openitcockpit/victoria-metrics",
+    "finalImageTag": "latest"
+  }
+}
