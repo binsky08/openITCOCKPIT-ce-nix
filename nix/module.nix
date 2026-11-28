@@ -47,6 +47,7 @@ let
   unitName = instance: "podman-${namePrefix}${instance}";
 
   setupUnit = "openitcockpit-podman-setup";
+  pullUnit = "openitcockpit-image-pull";
   buildUnit = "openitcockpit-image-build";
   updateUnit = "openitcockpit-update";
 
@@ -214,14 +215,69 @@ let
       ${podman}/bin/podman "$@"
   '';
 
-  # image reference -> list of units, for images pulled from a registry
-  updatable = filterAttrs (
-    _: i:
-    i.opts.autoUpdate && i.opts.imageFile == null && !(i.service == "openitcockpit" && customEnabled)
+  # Instances whose container runs an image pulled from a registry (not an
+  # imageFile, not the locally built custom image).
+  registryInstances = filterAttrs (
+    _: i: i.opts.imageFile == null && !(i.service == "openitcockpit" && customEnabled)
   ) instances;
+
+  # image reference -> list of units, for images pulled from a registry
+  updatable = filterAttrs (_: i: i.opts.autoUpdate) registryInstances;
   updateGroups = lib.groupBy' (acc: i: acc ++ [ "${unitName i.name}.service" ]) [ ] (
     i: imageRef i.opts
   ) (builtins.attrValues updatable);
+
+  # Missing images are pulled one after another, with retries, before the
+  # containers start. Otherwise every container unit pulls its own image when it
+  # starts: concurrent pulls into the same rootless image store can fail while
+  # writing shared layers, and systemd does not retry the start of containers
+  # that failed with result 'dependency' (e.g. openitcockpit when redis failed).
+  # Includes the base of the custom image, so the build does not pull either.
+  pulledImages = unique (
+    mapAttrsToList (_: i: imageRef i.opts) registryInstances
+    ++ optional (customEnabled && instances ? openitcockpit && oitcOpts.imageFile == null) baseRef
+  );
+
+  # Seconds before the next attempt: 7 attempts per image within ~14 minutes.
+  pullRetryDelays = [
+    10
+    30
+    60
+    120
+    300
+    300
+  ];
+
+  pullScript = ''
+    failed=0
+
+    pull() {
+      local ref=$1 attempt=1 delay
+      if podman image exists "$ref"; then
+        echo "$ref is present"
+        return 0
+      fi
+      for delay in ${concatStringsSep " " (map toString pullRetryDelays)} last; do
+        echo "Pulling $ref (attempt $attempt)"
+        if podman pull --quiet "$ref" >/dev/null; then
+          return 0
+        fi
+        if [ "$delay" = last ]; then
+          break
+        fi
+        echo "Pulling $ref failed, retrying in ''${delay}s" >&2
+        sleep "$delay"
+        attempt=$((attempt + 1))
+      done
+      echo "Giving up on $ref after $attempt attempts" >&2
+      failed=1
+    }
+
+    for ref in ${escapeShellArgs pulledImages}; do
+      pull "$ref"
+    done
+    exit "$failed"
+  '';
 
   customBuildBasePull =
     if oitcOpts.autoUpdate && oitcOpts.imageFile == null then "always" else "never";
@@ -756,7 +812,12 @@ in
               "${setupUnit}.service"
               "user@${uid}.service"
             ]
+            ++ optional (pulledImages != [ ]) "${pullUnit}.service"
             ++ optional (i.service == "openitcockpit" && customEnabled) "${buildUnit}.service";
+            # Only wanted: a failed pull falls back to the container's own pull
+            # (and its Restart=), and restarting the pull unit (e.g. on switch)
+            # must not restart the containers.
+            wants = optional (pulledImages != [ ]) "${pullUnit}.service";
             requires = [
               "${setupUnit}.service"
               "user@${uid}.service"
@@ -813,14 +874,42 @@ in
           };
         }
 
+        (mkIf (pulledImages != [ ]) {
+          ${pullUnit} = {
+            description = "Pull missing openITCOCKPIT container images";
+            after = [
+              "user@${uid}.service"
+              "linger-users.service"
+              "network-online.target"
+            ];
+            wants = [
+              "linger-users.service"
+              "network-online.target"
+            ];
+            requires = [ "user@${uid}.service" ];
+            path = [ podman ];
+            environment.HOME = cfg.dataDir;
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              User = cfg.user;
+              Group = cfg.group;
+              WorkingDirectory = cfg.dataDir;
+              TimeoutStartSec = "2h";
+            };
+            script = pullScript;
+          };
+        })
+
         (mkIf (customEnabled && instances ? openitcockpit) {
           ${buildUnit} = {
             description = "Build the customized openITCOCKPIT image";
             after = [
               "${setupUnit}.service"
               "network-online.target"
-            ];
-            wants = [ "network-online.target" ];
+            ]
+            ++ optional (pulledImages != [ ]) "${pullUnit}.service";
+            wants = [ "network-online.target" ] ++ optional (pulledImages != [ ]) "${pullUnit}.service";
             requires = [ "${setupUnit}.service" ];
             path = [ podman ];
             environment.HOME = cfg.dataDir;

@@ -79,6 +79,7 @@ systemd units:
 | `openitcockpit.target` | all containers (`systemctl restart openitcockpit.target`) |
 | `podman-openitcockpit-<name>.service` | one per container, runs as the service user |
 | `openitcockpit-podman-setup.service` | creates the podman network and named volumes |
+| `openitcockpit-image-pull.service` | pulls missing images one after another, with retries, before the containers start |
 | `openitcockpit-image-build.service` | builds the custom image (only if configured) |
 | `openitcockpit-update.service` | update run; also usable manually when the timer is off |
 
@@ -218,6 +219,7 @@ Back up at least `mysql-data`, `oitc-*`, `naemon-*`, `grafana-data`, `graphite-d
 
 - Podman does not grant `NET_RAW`, `MKNOD` and `AUDIT_WRITE` by default, while Docker does, and the stack was built for Docker. The module adds them back (needed e.g. for `check_icmp` and cron).
 - Restart handling is done by systemd (`Restart=on-failure`), and dependencies follow `depends_on`.
+- Missing images are pulled by `openitcockpit-image-pull.service` one after another, before any container starts (7 attempts per image within about 14 minutes). With one pull per container unit, concurrent pulls into the same rootless image store can fail while writing shared layers. systemd does not retry the start of a container whose dependency failed (result `dependency`), so on a fresh installation e.g. openitcockpit stayed down after a failed redis pull. Images that are already present are skipped, so a reboot needs no network for this. The containers only want the unit: if it gives up, each container still tries its own pull.
 - The container's port 80 is not published (see above).
 - `carbonCacheInstances` must be at least 2, because carbon-c-relay always falls back to `carbon-cache1` and `carbon-cache2`.
 
@@ -254,7 +256,7 @@ The tests run in three tiers. All of them work on any Linux machine with Nix
 and KVM; NixOS is not required on the host.
 
 1. **`checks.eval`** (seconds): evaluates the module with default and customized settings, asserts on the generated containers, units and nginx vhost, and checks the env file contents.
-2. **`checks.vm-basic`** (a few minutes, offline): a NixOS VM test with [pebble](https://github.com/letsencrypt/pebble) as ACME server. It uses the real redis image and a tiny Nix-built stand-in for the openitcockpit container that behaves like it at the HTTP level (80 → 301, TLS on 443, websocket at `/push_notifications`). It covers rootless operation, DNS aliases, `--init`, env precedence, the custom image build, nginx + ACME + websockets, and the update job against a local registry, including restarts only for changed images.
+2. **`checks.vm-basic`** (a few minutes, offline): a NixOS VM test with [pebble](https://github.com/letsencrypt/pebble) as ACME server. It uses the real redis image and a tiny Nix-built stand-in for the openitcockpit container that behaves like it at the HTTP level (80 → 301, TLS on 443, websocket at `/push_notifications`). It covers rootless operation, DNS aliases, `--init`, env precedence, the custom image build, nginx + ACME + websockets, the initial image pull (including retries while the registry is down), and the update job against a local registry, including restarts only for changed images.
 3. **`packages.test-full-stack`** (large, offline): all 16 real upstream images, pinned in `tests/images.json`. It waits for the first-time setup, logs in through the host nginx using the JSON API, checks the websocket upgrade, naemon and statusengine. It is not part of `nix flake check`. Refresh the pins with `nix run .#update-test-images`.
 
    ```sh

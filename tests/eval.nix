@@ -118,6 +118,29 @@ let
         "openitcockpit-openitcockpit"
       ];
 
+    "missing images are pulled one after another before the containers start" =
+      let
+        script = (svc defaults).openitcockpit-image-pull.script;
+        mysql = (svc defaults).podman-openitcockpit-mysql;
+      in
+      (svc defaults).openitcockpit-image-pull.serviceConfig.User == "openitcockpit"
+      && lib.hasInfix "docker.io/library/mysql:lts" script
+      && lib.hasInfix "docker.io/openitcockpit/openitcockpit-ce:latest" script
+      && lib.elem "openitcockpit-image-pull.service" mysql.after
+      && lib.elem "openitcockpit-image-pull.service" mysql.wants
+      && !(lib.elem "openitcockpit-image-pull.service" mysql.requires);
+
+    "initial pull covers tags, digests and the custom image base" =
+      let
+        script = (svc customized).openitcockpit-image-pull.script;
+      in
+      lib.hasInfix "docker.io/library/redis:7.4" script
+      && lib.hasInfix "docker.io/openitcockpit/grafana@sha256:a39434aba1a49f35c8814215ca4ea169e3f8116fe9e9e149bbbf50b7b50b6a2b" script
+      && lib.hasInfix "docker.io/openitcockpit/openitcockpit-ce:latest" script
+      && !(lib.hasInfix customized.services.openitcockpit.customImage.ref script)
+      && !(lib.hasInfix "boky/postfix" script)
+      && lib.elem "openitcockpit-image-pull.service" (svc customized).openitcockpit-image-build.after;
+
     "no timer without autoUpdate" = !((defaults.systemd.timers or { }) ? openitcockpit-update);
     "update service always available" = (svc defaults) ? openitcockpit-update;
     "update checks free disk space by default" =

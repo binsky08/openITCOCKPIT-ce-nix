@@ -11,6 +11,7 @@
 #   - custom image (overlay) build
 #   - host nginx reverse proxy with ACME (pebble) and websockets
 #   - the update job (pull from a local registry, restart of changed containers)
+#   - the initial image pull (before the containers, retries while the registry is down)
 { pkgs, self }:
 let
   domain = "openitcockpit.test";
@@ -175,7 +176,7 @@ pkgs.testers.runNixOSTest {
         };
       };
 
-      # Local registry with the redis image, available before the container starts.
+      # Local registry with the redis image, available before the images are pulled.
       services.dockerRegistry = {
         enable = true;
         listenAddress = "127.0.0.1";
@@ -184,8 +185,11 @@ pkgs.testers.runNixOSTest {
       systemd.services.seed-registry = {
         after = [ "docker-registry.service" ];
         requires = [ "docker-registry.service" ];
-        before = [ "podman-openitcockpit-redis.service" ];
-        requiredBy = [ "podman-openitcockpit-redis.service" ];
+        # Ordering only (both start in the boot transaction): a dependency of the
+        # pull unit would start the registry again when the retry subtest restarts
+        # the pull unit with the registry stopped.
+        before = [ "openitcockpit-image-pull.service" ];
+        wantedBy = [ "multi-user.target" ];
         path = [
           pkgs.skopeo
           pkgs.curl
@@ -209,8 +213,23 @@ pkgs.testers.runNixOSTest {
     def env_of(container, var):
         return podman(f"exec openitcockpit-{container} printenv {var}")
 
+    def journal_of_last_run(unit):
+        return (
+            "journalctl --no-pager _SYSTEMD_INVOCATION_ID="
+            f"$(systemctl show -p InvocationID --value {unit})"
+        )
+
     start_all()
     acme.wait_for_unit("pebble.service")
+
+    with subtest("missing images are pulled before the containers start"):
+        server.wait_for_unit("openitcockpit-image-pull.service")
+        server.succeed(
+            "journalctl -u openitcockpit-image-pull.service"
+            " | grep -q 'Pulling localhost:5000/library/redis:latest (attempt 1)'"
+        )
+        # The stand-in comes from an imageFile and is not pulled
+        server.fail("journalctl -u openitcockpit-image-pull.service | grep -q oitc-standin")
 
     with subtest("containers run rootless as the service user"):
         server.wait_for_unit("openitcockpit-podman-setup.service")
@@ -306,6 +325,23 @@ pkgs.testers.runNixOSTest {
         assert podman("inspect openitcockpit-redis --format '{{.State.Pid}}'") == redis_pid
         server.succeed("rm /var/lib/fill")
         server.succeed("systemctl start openitcockpit-update.service")
+
+    with subtest("initial pull retries until the registry is reachable"):
+        server.succeed("systemctl stop openitcockpit.target docker-registry.service")
+        podman("rmi --force localhost:5000/library/redis:latest")
+        server.succeed("systemctl restart --no-block openitcockpit-image-pull.service")
+        server.wait_until_succeeds(
+            journal_of_last_run("openitcockpit-image-pull.service") + " | grep -q 'retrying in 10s'",
+            timeout=120,
+        )
+        # The retry really happened against a stopped registry
+        server.fail("systemctl is-active docker-registry.service")
+        server.succeed("systemctl start docker-registry.service")
+        server.wait_until_succeeds("systemctl is-active openitcockpit-image-pull.service", timeout=180)
+        server.succeed(journal_of_last_run("openitcockpit-image-pull.service") + " | grep -q '(attempt 2)'")
+        podman("image exists localhost:5000/library/redis:latest")
+        server.succeed("systemctl start openitcockpit.target")
+        server.wait_for_unit("podman-openitcockpit-openitcockpit.service")
 
     with subtest("everything still answers after the update"):
         server.wait_until_succeeds("curl -skf https://${domain}/ | grep -q stand-in")
